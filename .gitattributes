@@ -1,0 +1,6 @@
+# Set all text files to normalize line endings
+* text=auto
+
+# Optional: giữ LF cho prisma & ts files
+*.ts text eol=lf
+*.prisma text eol=lf

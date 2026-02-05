@@ -1,0 +1,84 @@
+this is postgresql db
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  username VARCHAR(100) UNIQUE,
+  display_name VARCHAR(150),
+  avatar_varcharurl TEXT,
+  status VARCHAR(50) DEFAULT 'ACTIVE',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE capabilities (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,
+  icon_url TEXT,
+  badge_type capability_badge_type NOT NULL,
+  min_amount DECIMAL(10,2),
+  min_months INT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE user_capabilities (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  capability_id INT NOT NULL,
+  status common_status NOT NULL,
+  granted_datetimeby TIMESTAMP,
+  granted_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP,
+
+  CONSTRAINT fk_user_cap_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_user_cap_capability
+    FOREIGN KEY (capability_id) REFERENCES capabilities(id) ON DELETE CASCADE,
+
+  CONSTRAINT uq_user_capability UNIQUE (user_id, capability_id)
+);
+CREATE TABLE capability_applications (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  capability_code VARCHAR(100) NOT NULL,
+  status common_status NOT NULL DEFAULT 'PENDING',
+  reviewer_id INT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  reviewed_at TIMESTAMP,
+
+  CONSTRAINT fk_cap_app_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE subscriptions (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  plan_code VARCHAR(100) NOT NULL,
+  status VARCHAR(50) NOT NULL,
+  started_at TIMESTAMP,
+  ended_at TIMESTAMP,
+
+  CONSTRAINT fk_subscription_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE TABLE video_assets (
+  id SERIAL PRIMARY KEY,
+  owner_id INT NOT NULL,
+  source VARCHAR(50),
+  eligible_for_stitch BOOLEAN DEFAULT FALSE,
+  status VARCHAR(50),
+  created_at TIMESTAMP DEFAULT NOW(),
+
+  CONSTRAINT fk_video_owner
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX idx_user_capabilities_user_id
+  ON user_capabilities(user_id);
+
+CREATE INDEX idx_user_capabilities_capability_id
+  ON user_capabilities(capability_id);
+
+CREATE INDEX idx_capability_applications_user_id
+  ON capability_applications(user_id);
+
+CREATE INDEX idx_video_assets_owner
+  ON video_assets(owner_id);
