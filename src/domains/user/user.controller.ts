@@ -8,10 +8,12 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
+import { AssignCapabilityDto } from './dto/assign-capability.dto';
 
 @Controller('users')
 export class UserController {
@@ -44,6 +46,18 @@ export class UserController {
     return this.userService.listUserCapabilities(userId);
   }
 
+  @Post(':id/capabilities')
+  assignCapability(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() dto: AssignCapabilityDto,
+    @Headers('x-admin') adminHeader?: string,
+  ) {
+    if (adminHeader !== 'true') {
+      throw new UnauthorizedException('Admin access required');
+    }
+    return this.userService.assignCapability(userId, dto.capabilityId);
+  }
+  
   private parseUserId(userIdHeader?: string) {
     if (!userIdHeader) {
       throw new BadRequestException('Missing x-user-id header');

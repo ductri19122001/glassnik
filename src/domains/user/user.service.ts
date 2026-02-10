@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
+import { CommonStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class UserService {
@@ -16,6 +17,7 @@ export class UserService {
         avatarUrl: dto.avatarUrl,
       },
     });
+    
   }
 
   getMe(userId: number) {
@@ -89,5 +91,32 @@ export class UserService {
         },
       },
     });
+  }
+
+  async assignCapability(userId: number, capabilityId: number) {
+    try {
+      return await this.prisma.userCapability.upsert({
+      where: {
+        userId_capabilityId: {
+          userId,
+          capabilityId,
+        },
+      },
+      create: {
+        userId,
+        capabilityId,
+        status: CommonStatus.ACTIVE,
+        grantedAt: new Date(),
+      },
+      update: {
+        status: CommonStatus.ACTIVE,
+      },
+    });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw new NotFoundException(`User ID ${userId} or Capability ID ${capabilityId} not found`);
+      }
+      throw error;
+    }
   }
 }

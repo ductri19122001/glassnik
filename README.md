@@ -33,48 +33,35 @@ The API runs at `http://localhost:3000`.
 
 ---
 
-## User & Capabilities APIs (Current)
+## API Endpoints
 
 ### User Management (`/users`)
-Endpoints:
-1. `POST /users`  
-Register a new user.
+- `POST /users` - Register a new user.
+- `GET /users` - List all users.
+- `GET /users/:id` - Get user details.
+- `GET /users/:id/capabilities` - List capabilities assigned to a user.
 
-2. `GET /users/me`  
-Get the current user profile.  
-Uses header `x-user-id` for now (simple test auth).
+### Capabilities (`/capabilities`)
+- `GET /capabilities` - List all capability definitions.
+- `POST /capabilities` - Create a new capability (Admin only, header `x-admin: true`).
 
-3. `PATCH /users/me`  
-Update current user profile (display name, avatar).  
-Uses header `x-user-id`.
-
-4. `GET /users/:id`  
-Get public profile information of another user.
-
-5. `GET /users/:userId/capabilities`  
-List capabilities assigned to a specific user.
-
-### Capabilities & Badges (`/capabilities`)
-Endpoints:
-1. `GET /capabilities`  
-List all available capability definitions.
-
-2. `POST /capabilities` (Admin only)  
-Create a new capability definition.  
-Uses header `x-admin: true`.
+### Applications (`/applications`)
+- `POST /applications` - Submit a capability application (Header `x-user-id`).
+- `GET /applications` - List applications (Admin only, header `x-admin: true`).
+- `GET /applications/:id` - Get application details.
+- `PATCH /applications/:id/review` - Approve/Reject application (Admin only).
 
 ---
 
-## Testing Guide (PowerShell)
+## Testing Guide (Command Prompt / cmd.exe)
 
-Important: In PowerShell, `curl` is an alias for `Invoke-WebRequest`.  
-Use `Invoke-RestMethod` or `curl.exe`.
+**Note**: Use `^` for line continuation in Command Prompt.
 
-### 1) Create a user
-```powershell
-Invoke-RestMethod -Method Post -Uri http://localhost:3000/users `
-  -ContentType "application/json" `
-  -Body '{"email":"alice@example.com","username":"alice","displayName":"Alice"}'
+### 1. Create a User
+```cmd
+curl -X POST http://localhost:3000/users ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"test@example.com\",\"username\":\"tester\",\"displayName\":\"Test User\"}"
 ```
 
 ### 2) Get current user profile
@@ -114,13 +101,31 @@ Invoke-RestMethod -Method Get -Uri http://localhost:3000/capabilities
 Invoke-RestMethod -Method Get -Uri http://localhost:3000/users/1/capabilities
 ```
 
----
-
-## Testing Guide (curl.exe on Windows)
-
+### 8) Create "Admin" Capability (Admin only)
 ```powershell
-curl.exe -X POST http://localhost:3000/users `
-  -H "Content-Type: application/json" `
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/capabilities `
+  -Headers @{ "x-admin" = "true" } `
+  -ContentType "application/json" `
+  -Body '{"name":"Admin Role","badgeType":"SUBSCRIPTION","minAmount":0,"minMonths":0,"iconUrl":"https://placehold.co/64"}'
+```
+
+### 9) Assign Capability to User 2 (Admin only)
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/users/2/capabilities `
+  -Headers @{ "x-admin" = "true" } `
+  -ContentType "application/json" `
+  -Body '{"capabilityId":2}'
+```
+
+
+## Testing Guide (Command Prompt / cmd.exe)
+
+**Note**: Use `^` for line continuation in Command Prompt.
+
+### 1) Create a user
+```cmd
+curl -X POST http://localhost:3000/users ^
+  -H "Content-Type: application/json" ^
   -d "{\"email\":\"alice@example.com\",\"username\":\"alice\",\"displayName\":\"Alice\"}"
 ```
 
