@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { VideoController } from './video.controller';
 import { VideoService } from './video.service';
-import { GcpModule } from '@/gcp.module';
+import { VideoController } from './video.controller';
+import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
-  imports: [GcpModule],
+  imports: [PrismaModule],
   controllers: [VideoController],
   providers: [VideoService],
 })

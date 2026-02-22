@@ -1,7 +1,6 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -9,17 +8,22 @@ export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateSubscriptionDto) {
-    return this.subscriptionsService.create(req.user.id, dto);
+  create(@Req() req, @Body() body: { planCode: string }) {
+    const userId = req.user.id;
+    if (!body.planCode) throw new BadRequestException('Missing planCode in body');
+    
+    return this.subscriptionsService.create(userId, body.planCode);
   }
 
   @Get('current')
   getCurrent(@Req() req) {
-    return this.subscriptionsService.getCurrent(req.user.id);
+    const userId = req.user.id;
+    return this.subscriptionsService.findCurrent(userId);
   }
 
   @Post('cancel')
   cancel(@Req() req) {
-    return this.subscriptionsService.cancel(req.user.id);
+    const userId = req.user.id;
+    return this.subscriptionsService.cancel(userId);
   }
 }

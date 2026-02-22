@@ -1,32 +1,72 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
-import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: number, dto: CreateSubscriptionDto) {
-    // Cancel any existing active subscription
-    await this.prisma.subscription.updateMany({
-      where: { userId, status: 'ACTIVE' },
-      data: { status: 'CANCELLED', endedAt: new Date() },
+  async create(userId: number, planCode: string) {
+    // Check if the user already has an active subscription
+    const activeSub = await this.prisma.subscription.findFirst({
+      where: {
+        userId,
+        status: 'ACTIVE',
+        currentPeriodEnd: { gt: new Date() },
+      },
     });
 
-    return this.prisma.subscription.create({
+    if (activeSub) {
+      throw new BadRequestException('User already has an active subscription.');
+    }
+
+    // Mock logic: Create a 1-month active subscription
+    const startDate = new Date();
+    const currentPeriodEnd = new Date();
+    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+
+    // Transaction: Create Subscription AND Grant Capability
+    return this.prisma.$transaction(async (tx) => {
+      const sub = await tx.subscription.create({
       data: {
         userId,
-        planCode: dto.planCode,
+        planCode,
         status: 'ACTIVE',
-        startedAt: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        startedAt: startDate,
+        currentPeriodEnd: currentPeriodEnd,
       },
+    });
+
+      // Rule: Grant 'live.subscriber' if plan is PREMIUM
+      if (planCode.startsWith('PREMIUM')) {
+        const cap = await tx.capability.findUnique({ where: { name: 'live.subscriber' } });
+        if (cap) {
+          await tx.userCapability.upsert({
+            where: { userId_capabilityId: { userId, capabilityId: cap.id } },
+            create: {
+              userId,
+              capabilityId: cap.id,
+              status: 'ACTIVE',
+              expiresAt: currentPeriodEnd,
+            },
+            update: {
+              status: 'ACTIVE',
+              expiresAt: currentPeriodEnd,
+            },
+          });
+        }
+      }
+
+      return sub;
     });
   }
 
-  async getCurrent(userId: number) {
+  async findCurrent(userId: number) {
     const subscription = await this.prisma.subscription.findFirst({
-      where: { userId, status: 'ACTIVE' },
+      where: {
+        userId,
+        status: 'ACTIVE',
+        currentPeriodEnd: { gt: new Date() },
+      },
       orderBy: { startedAt: 'desc' },
     });
 
@@ -38,18 +78,12 @@ export class SubscriptionsService {
   }
 
   async cancel(userId: number) {
-    const subscription = await this.prisma.subscription.findFirst({
-      where: { userId, status: 'ACTIVE' },
-    });
-
-    if (!subscription) {
-      throw new NotFoundException('No active subscription to cancel');
-    }
+    const activeSub = await this.findCurrent(userId);
 
     return this.prisma.subscription.update({
-      where: { id: subscription.id },
+      where: { id: activeSub.id },
       data: {
-        status: 'CANCELLED',
+        status: 'CANCELED',
         endedAt: new Date(),
       },
     });
