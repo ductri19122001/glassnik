@@ -1,6 +1,6 @@
 ### 1. Register a new user
-# Gửi request này TRƯỚC để tạo tài khoản.
-# Bạn có thể đổi email và password nếu muốn.
+# send this request first to create a new user account. You can change the email and password if you want.
+
 POST http://localhost:3000/auth/register
 Content-Type: application/json
 
@@ -11,7 +11,8 @@ Content-Type: application/json
 }
 
 ### 2. Login with the new user
-# Sau khi đăng ký thành công, gửi request này để đăng nhập.
+
+# after successful login, copy "access_token" từ response and use for the next requests.
 POST http://localhost:3000/auth/login
 Content-Type: application/json
 
@@ -20,15 +21,15 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### 3. Test Get Videos (Cần Token)
-# Sau khi login thành công, copy "access_token" và dán vào thay thế YOUR_TOKEN_HERE bên dưới
+### 3. Test Get Videos 
+#after successful login, copy the "access_token" from the response and replace YOUR_TOKEN_HERE below
 GET http://localhost:3000/videos
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDYyNDgsImV4cCI6MTc3MTc0NzE0OH0.qFv_egFhM02A5a41I7CFrbOuG3lqBr_2SWYawTlIBPM
 
-### 4. Direct Upload Video (Cần Token)
-# Upload video và metadata trong một request (multipart/form-data)
+### 4. Direct Upload Video 
+# Upload video and metadata in a request (multipart/form-data)
 POST http://localhost:3000/videos/upload
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDYyNDgsImV4cCI6MTc3MTc0NzE0OH0.qFv_egFhM02A5a41I7CFrbOuG3lqBr_2SWYawTlIBPM
 Content-Type: multipart/form-data; boundary=MyBoundary
 
 --MyBoundary
@@ -46,13 +47,13 @@ Content-Type: video/mp4
 < ./1111.mp4
 --MyBoundary--
 
-### 5. Delete Video (Cần Token)
-# Thay :videoId bằng ID video bạn muốn xóa (lấy từ kết quả của request số 3 hoặc 4)
-DELETE http://localhost:3000/videos/:videoId
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+### 5. Delete Video 
+# Change :videoId with the ID video you want to delete (get the ID from the request  3 or 4)
+DELETE http://localhost:3000/videos/18
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDgwMzAsImV4cCI6MTc3MTc0ODkzMH0.OpXqvcwpsxdE5wuwZMFZOdu4b79g1SMC7lNoITN4Cs0
 
-### 6. Apply for Creator (Cần Token)
-# Nộp đơn đăng ký làm Creator
+### 6. Apply for Creator
+# Apply to be a Creator
 POST http://localhost:3000/applications
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEwLCJpYXQiOjE3NzE3MjI5NzYsImV4cCI6MTc3MTcyMzg3Nn0.Veg8N3gAY18qXcYdUfn25PTdGepbGncZsQXce_m68qE
 Content-Type: application/json
@@ -62,8 +63,8 @@ Content-Type: application/json
   "notes": "I want to stream games"
 }
 
-### 7. Subscribe (Cần Token)
-# Đăng ký gói Premium (Giả lập)
+### 7. Subscribe 
+# sign for Premium (simulator)
 POST http://localhost:3000/subscriptions
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E
 Content-Type: application/json
@@ -72,12 +73,12 @@ Content-Type: application/json
   "planCode": "premium"
 }
 
-### 8. Check Subscription (Cần Token)
-# Kiểm tra trạng thái gói hiện tại
+### 8. Check Subscription 
+# check the current subscription status
 GET http://localhost:3000/subscriptions/current
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E
 
-### 9. Cancel Subscription (Cần Token)
-# Hủy gói đăng ký
+### 9. Cancel Subscription 
+#cancel the current subscription
 POST http://localhost:3000/subscriptions/cancel
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E
