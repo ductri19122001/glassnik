@@ -1,0 +1,83 @@
+### 1. Register a new user
+# Gửi request này TRƯỚC để tạo tài khoản.
+# Bạn có thể đổi email và password nếu muốn.
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "username": "testuser"
+}
+
+### 2. Login with the new user
+# Sau khi đăng ký thành công, gửi request này để đăng nhập.
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+### 3. Test Get Videos (Cần Token)
+# Sau khi login thành công, copy "access_token" và dán vào thay thế YOUR_TOKEN_HERE bên dưới
+GET http://localhost:3000/videos
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+
+### 4. Direct Upload Video (Cần Token)
+# Upload video và metadata trong một request (multipart/form-data)
+POST http://localhost:3000/videos/upload
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+Content-Type: multipart/form-data; boundary=MyBoundary
+
+--MyBoundary
+Content-Disposition: form-data; name="title"
+
+My TikTok Style Video
+--MyBoundary
+Content-Disposition: form-data; name="description"
+
+This is a direct upload.
+--MyBoundary
+Content-Disposition: form-data; name="file"; filename="1111.mp4"
+Content-Type: video/mp4
+
+< ./1111.mp4
+--MyBoundary--
+
+### 5. Delete Video (Cần Token)
+# Thay :videoId bằng ID video bạn muốn xóa (lấy từ kết quả của request số 3 hoặc 4)
+DELETE http://localhost:3000/videos/:videoId
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3NDQ5NDQsImV4cCI6MTc3MTc0NTg0NH0.LFGZ9jF7C96O99248c77Kj0RfpJK9HbeRa5TqmneDxU
+
+### 6. Apply for Creator (Cần Token)
+# Nộp đơn đăng ký làm Creator
+POST http://localhost:3000/applications
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEwLCJpYXQiOjE3NzE3MjI5NzYsImV4cCI6MTc3MTcyMzg3Nn0.Veg8N3gAY18qXcYdUfn25PTdGepbGncZsQXce_m68qE
+Content-Type: application/json
+
+{
+  "capabilityCode": "live.creator",
+  "notes": "I want to stream games"
+}
+
+### 7. Subscribe (Cần Token)
+# Đăng ký gói Premium (Giả lập)
+POST http://localhost:3000/subscriptions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E
+Content-Type: application/json
+
+{
+  "planCode": "premium"
+}
+
+### 8. Check Subscription (Cần Token)
+# Kiểm tra trạng thái gói hiện tại
+GET http://localhost:3000/subscriptions/current
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E
+
+### 9. Cancel Subscription (Cần Token)
+# Hủy gói đăng ký
+POST http://localhost:3000/subscriptions/cancel
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjExLCJpYXQiOjE3NzE3MjQwNDcsImV4cCI6MTc3MTcyNDk0N30.NTF_6ByF79HMGW5L6HzvNY6uK7JovhwB4yirgxXXu-E

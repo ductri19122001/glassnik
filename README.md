@@ -63,6 +63,54 @@ List all available capability definitions.
 Create a new capability definition.  
 Uses header `x-admin: true`.
 
+### Subscriptions (`/subscriptions`)
+Endpoints:
+1. `POST /subscriptions`  
+Create or upgrade a subscription.  
+Body: `{"planCode": "PREMIUM_MONTHLY"}`
+
+2. `GET /subscriptions/current`  
+Get the current active subscription of the user.
+
+3. `POST /subscriptions/cancel`  
+Cancel the current subscription.
+
+### Capability Applications (`/applications`)
+Endpoints:
+1. `POST /applications`  
+Submit a capability application.  
+Body: `{"capabilityCode": "live.creator", "notes": "I want to stream"}`
+
+2. `GET /applications` (Admin only)  
+List applications. Filter by `?status=PENDING`.
+
+3. `PATCH /applications/:id/review` (Admin only)  
+Approve or reject.  
+Body: `{"status": "APPROVED", "notes": "Looks good"}`
+
+### Video Assets (`/videos`)
+Endpoints:
+1. `POST /videos` - Initialize a video upload.
+2. `GET /videos` - List videos owned by the current user.
+3. `GET /videos/:id` - Get metadata of a specific video.
+4. `PATCH /videos/:id` - Update video status or settings.
+
+### Live Experiences (`/live`)
+*Requires header `x-capabilities` for checks (e.g., `live.creator,live.viewer`).*
+Endpoints:
+1. `GET /live/:id` - Watch public live.
+2. `GET /live/:id/premium` - Watch premium live (Requires `live.subscriber`).
+3. `POST /live/start` - Start stream (Requires `live.creator`).
+4. `POST /live/:id/chat` - Send chat (Requires `live.viewer`).
+
+### Mobile Experiences (`/mobile`)
+Endpoints:
+1. `POST /mobile/videos` - Upload mobile video (Requires `mobile.creator`).
+2. `GET /mobile/feed` - View public video feed.
+
+### Core (`/me`)
+*Note: Currently using `GET /users/me` or `GET /users/:id/capabilities` to retrieve capabilities.*
+
 ---
 
 ## Testing Guide (PowerShell)
