@@ -11,6 +11,7 @@ import { SubscriptionsModule } from './domains/subscriptions/subscriptions.modul
 import { VideoModule } from './domains/video/video.module';
 import { LiveModule } from './domains/live/live.module';
 import { MobileModule } from './domains/mobile/mobile.module';
+import { SmartGlassesModule } from './domains/smart-glasses/smart-glasses.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MobileModule } from './domains/mobile/mobile.module';
     VideoModule,
     LiveModule,
     MobileModule,
+    SmartGlassesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

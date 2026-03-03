@@ -1,32 +1,25 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Req, BadRequestException, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { MobileService } from './mobile.service';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
-import {
-  CapabilitiesGuard,
-  RequireCapabilities,
-} from '@/auth/guards/capabilities.guard';
-import { CursorPaginationDto } from '@/common/dto/cursor-pagination.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('mobile')
 export class MobileController {
   constructor(private readonly mobileService: MobileService) {}
 
   @Post('videos')
-  @UseGuards(JwtAuthGuard, CapabilitiesGuard)
-  @RequireCapabilities('mobile.creator')
-  uploadVideo(@Req() req) {
-    return this.mobileService.uploadVideo(req.user.id);
+  @UseGuards(JwtAuthGuard)
+  uploadVideo(@Req() req, @Body() body: { filename: string; content: string }) {
+    if (!body.filename || !body.content) {
+      throw new BadRequestException('Filename and content are required');
+    }
+    return this.mobileService.uploadMobileVideo(req.user.id, body.filename, body.content);
   }
 
   @Get('feed')
-  getFeed(@Query() pagination: CursorPaginationDto) {
-    return this.mobileService.getFeed(pagination);
+  getFeed(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.mobileService.getFeed(page, limit);
   }
 }

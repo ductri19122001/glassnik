@@ -24,4 +24,11 @@ export class CapabilitiesService {
       },
     });
   }
+
+  listUserApplications(userId: number) {
+    return this.prisma.capabilityApplication.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
