@@ -12,6 +12,7 @@ import { VideoModule } from './domains/video/video.module';
 import { LiveModule } from './domains/live/live.module';
 import { MobileModule } from './domains/mobile/mobile.module';
 import { SmartGlassesModule } from './domains/smart-glasses/smart-glasses.module';
+import { ModerationModule } from './domains/moderation/moderation.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SmartGlassesModule } from './domains/smart-glasses/smart-glasses.module
     LiveModule,
     MobileModule,
     SmartGlassesModule,
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -16,7 +16,10 @@ export class SmartGlassesService {
         userId,
         capability: { name: capabilityName },
         status: 'ACTIVE',
-        expiresAt: { gt: new Date() },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
       },
     });
 

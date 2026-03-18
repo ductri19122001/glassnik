@@ -193,3 +193,4 @@ curl.exe -X POST http://localhost:3000/users `
 ## Notes
 - `x-user-id` and `x-admin` are **temporary headers** for local testing only.
 - Real authentication and authorization (JWT/guards/roles) can be added later.
+
