@@ -1,39 +1,80 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@/prisma/prisma.service';
-import { CursorPaginationDto, PaginatedResponse } from '@/common/dto/cursor-pagination.dto';
+import { Injectable, ForbiddenException } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
+import { GcpService } from '../../gcp.service';
 
 @Injectable()
 export class MobileService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private gcpService: GcpService,
+  ) {}
 
-  uploadVideo(userId: number) {
-    return {
-      userId,
-      message: 'Mobile video upload initiated (capability: mobile.creator)',
-      status: 'PENDING_UPLOAD',
-    };
-  }
-
-  async getFeed(pagination: CursorPaginationDto) {
-    const limit = pagination.limit || 20;
-    const cursor = pagination.cursor ? parseInt(pagination.cursor) : undefined;
-
-    const videos = await this.prisma.videoAsset.findMany({
-      take: limit + 1,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      where: { status: 'READY' },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        owner: {
-          select: { id: true, username: true, displayName: true, avatarUrl: true },
-        },
+  // Helper to verify user has the required capability
+  private async checkCapability(userId: number, capabilityName: string) {
+    const userCap = await this.prisma.userCapability.findFirst({
+      where: {
+        userId,
+        capability: { name: capabilityName },
+        status: 'ACTIVE',
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: new Date() } },
+        ],
       },
     });
 
-    const hasMore = videos.length > limit;
-    const data = hasMore ? videos.slice(0, limit) : videos;
-    const nextCursor = hasMore ? String(data[data.length - 1].id) : null;
+    if (!userCap) {
+      throw new ForbiddenException(`Required capability not found: ${capabilityName}`);
+    }
+  }
 
-    return new PaginatedResponse(data, nextCursor, hasMore);
+  async uploadMobileVideo(userId: number, filename: string, content: string) {
+    // 1. Enforce 'mobile.creator' capability
+    await this.checkCapability(userId, 'mobile.creator');
+
+    // 2. Upload to GCP
+    const uniqueFilename = `mobile/${userId}/${Date.now()}-${filename}`;
+    const publicUrl = await this.gcpService.uploadFile(uniqueFilename, content);
+
+    // 3. Save metadata with source='MOBILE' to ensure feed consistency
+    return this.prisma.videoAsset.create({
+      data: {
+        ownerId: userId,
+        title: filename,
+        description: 'Mobile Eye-POV Capture',
+        source: 'MOBILE', // Critical for the "visual consistency" requirement
+        gcsPath: uniqueFilename,
+        publicUrl: publicUrl,
+        status: 'READY', // Assuming direct upload success for this MVP
+        mimeType: 'video/mp4',
+      },
+    });
+  }
+
+  async getFeed(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    // Fetch only MOBILE source videos to maintain the "continuous experience"
+    // and "same eye level" perspective.
+    return this.prisma.videoAsset.findMany({
+      where: {
+        source: 'MOBILE',
+        status: 'READY',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      skip,
+      take: limit,
+      include: {
+        owner: {
+          select: {
+            id: true,
+            displayName: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
   }
 }

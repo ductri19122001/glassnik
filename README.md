@@ -35,6 +35,17 @@ The API runs at `http://localhost:3000`.
 
 ## User & Capabilities APIs (Current)
 
+### Authentication (`/auth`)
+Endpoints:
+1. `POST /auth/register`
+   Register a new user.
+2. `POST /auth/login`
+   Login with email/password. Returns `accessToken` and `refreshToken`.
+3. `POST /auth/refresh`
+   Refresh access token using refresh token.
+4. `POST /auth/logout`
+   Logout (revoke refresh token).
+
 ### User Management (`/users`)
 Endpoints:
 1. `POST /users`  
@@ -108,6 +119,11 @@ Endpoints:
 1. `POST /mobile/videos` - Upload mobile video (Requires `mobile.creator`).
 2. `GET /mobile/feed` - View public video feed.
 
+### Smart Glasses Experiences (`/glasses`)
+Endpoints:
+1. `GET /glasses/experiences/:id` - View immersive content (Requires `glasses.subscriber`).
+2. `POST /glasses/footage` - Upload footage (Requires `immersive.contributor`).
+
 ### Core (`/me`)
 *Note: Currently using `GET /users/me` or `GET /users/:id/capabilities` to retrieve capabilities.*
 
@@ -177,3 +193,4 @@ curl.exe -X POST http://localhost:3000/users `
 ## Notes
 - `x-user-id` and `x-admin` are **temporary headers** for local testing only.
 - Real authentication and authorization (JWT/guards/roles) can be added later.
+

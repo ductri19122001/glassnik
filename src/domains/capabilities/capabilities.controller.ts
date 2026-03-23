@@ -1,6 +1,7 @@
-import { Body, Controller, ForbiddenException, Get, Headers, Post } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Headers, Post, UseGuards, Req } from '@nestjs/common';
 import { CapabilitiesService } from './capabilities.service';
 import { CreateCapabilityDto } from './dto/create-capability.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @Controller('capabilities')
 export class CapabilitiesController {
@@ -9,6 +10,12 @@ export class CapabilitiesController {
   @Get()
   listAll() {
     return this.capabilitiesService.listAll();
+  }
+
+  @Get('applications/me')
+  @UseGuards(JwtAuthGuard)
+  listMyApplications(@Req() req) {
+    return this.capabilitiesService.listUserApplications(req.user.id);
   }
 
   @Post()
