@@ -1,0 +1,148 @@
+﻿%% Glassnik ERD
+erDiagram
+  USERS {
+    INT id PK
+    VARCHAR email
+    VARCHAR username
+    VARCHAR display_name
+    VARCHAR avatar_varcharurl
+    VARCHAR password_hash
+    BOOLEAN email_verified
+    VARCHAR provider
+    VARCHAR provider_id
+    TIMESTAMP last_login_at
+    VARCHAR status
+    TIMESTAMP created_at
+    TIMESTAMP updated_at
+  }
+
+  CATEGORIES {
+    INT id PK
+    VARCHAR name
+    VARCHAR slug
+    BOOLEAN is_active
+    TIMESTAMP created_at
+  }
+
+  ACTIVITIES {
+    INT id PK
+    VARCHAR name
+    BOOLEAN is_active
+    TIMESTAMP created_at
+  }
+
+  PLACES {
+    INT id PK
+    VARCHAR name
+    VARCHAR city
+    VARCHAR country
+    DECIMAL latitude
+    DECIMAL longitude
+    TIMESTAMP created_at
+  }
+
+  TAGS {
+    INT id PK
+    VARCHAR name
+    VARCHAR slug
+  }
+
+  VIDEO_TAGS {
+    INT video_id PK, FK
+    INT tag_id PK, FK
+  }
+
+  REFRESH_TOKENS {
+    INT id PK
+    INT user_id FK
+    VARCHAR token_hash
+    BOOLEAN is_revoked
+    TIMESTAMP expires_at
+    TIMESTAMP created_at
+  }
+
+  CAPABILITIES {
+    INT id PK
+    VARCHAR name
+    VARCHAR icon_url
+    ENUM badge_type
+    DECIMAL min_amount
+    INT min_months
+    BOOLEAN is_active
+    TIMESTAMP created_at
+  }
+
+  USER_CAPABILITIES {
+    INT id PK
+    INT user_id FK
+    INT capability_id FK
+    ENUM status
+    TIMESTAMP granted_datetimeby
+    TIMESTAMP granted_at
+    TIMESTAMP expires_at
+  }
+
+  CAPABILITY_APPLICATIONS {
+    INT id PK
+    INT user_id FK
+    VARCHAR capability_code
+    ENUM status
+    INT reviewer_id
+    TEXT notes
+    TIMESTAMP created_at
+    TIMESTAMP reviewed_at
+  }
+
+  SUBSCRIPTIONS {
+    INT id PK
+    INT user_id FK
+    VARCHAR plan_code
+    VARCHAR status
+    TIMESTAMP started_at
+    TIMESTAMP ended_at
+    VARCHAR processor_subscription_id
+    VARCHAR processor_customer_id
+    TIMESTAMP current_period_end
+  }
+
+  VIDEO_ASSETS {
+    INT id PK
+    INT owner_id FK
+    VARCHAR title
+    TEXT description
+    VARCHAR source
+    VARCHAR gcs_path
+    VARCHAR public_url
+    VARCHAR mime_type
+    BIGINT size_bytes
+    INT duration_seconds
+    INT category_id FK
+    INT activity_id FK
+    INT place_id FK
+    DECIMAL latitude
+    DECIMAL longitude
+    VARCHAR location_name
+    VARCHAR author_display_name
+    INT views
+    INT likes
+    INT shares
+    JSON metadata
+    BOOLEAN eligible_for_stitch
+    VARCHAR status
+    ENUM processing_status
+    TIMESTAMP created_at
+  }
+
+  USERS ||--o{ REFRESH_TOKENS : has
+  USERS ||--o{ CAPABILITY_APPLICATIONS : submits
+  USERS ||--o{ SUBSCRIPTIONS : has
+  USERS ||--o{ USER_CAPABILITIES : has
+  USERS ||--o{ VIDEO_ASSETS : owns
+
+  CAPABILITIES ||--o{ USER_CAPABILITIES : assigned
+  CATEGORIES ||--o{ VIDEO_ASSETS : categorizes
+  ACTIVITIES ||--o{ VIDEO_ASSETS : relates
+  PLACES ||--o{ VIDEO_ASSETS : located_at
+
+  VIDEO_ASSETS ||--o{ VIDEO_TAGS : has
+  TAGS ||--o{ VIDEO_TAGS : labeled_with

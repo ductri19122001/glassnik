@@ -21,7 +21,27 @@ npx prisma migrate dev --name init
 npm run start:dev
 ```
 
-API base URL: `http://localhost:3000`.
+The API runs at `http://localhost:3000`.
+
+---
+
+## User & Capabilities APIs (Current)
+
+### Authentication (`/auth`)
+Endpoints:
+1. `POST /auth/register`
+   Register a new user.
+2. `POST /auth/login`
+   Login with email/password. Returns `accessToken` and `refreshToken`.
+3. `POST /auth/refresh`
+   Refresh access token using refresh token.
+4. `POST /auth/logout`
+   Logout (revoke refresh token).
+
+### User Management (`/users`)
+Endpoints:
+1. `POST /users`  
+Register a new user.
 
 ## Environment
 
@@ -93,12 +113,79 @@ These endpoints currently use the header `x-user-id` for local testing:
 - `GET /capabilities`
 - `POST /capabilities` (requires `x-admin: true`)
 
-### Me (`/me`) — JWT required
-- `GET /me/capabilities`
+### Smart Glasses Experiences (`/glasses`)
+Endpoints:
+1. `GET /glasses/experiences/:id` - View immersive content (Requires `glasses.subscriber`).
+2. `POST /glasses/footage` - Upload footage (Requires `immersive.contributor`).
+
+### Core (`/me`)
+*Note: Currently using `GET /users/me` or `GET /users/:id/capabilities` to retrieve capabilities.*
+
+---
+
+## Testing Guide (PowerShell)
+
+Important: In PowerShell, `curl` is an alias for `Invoke-WebRequest`.  
+Use `Invoke-RestMethod` or `curl.exe`.
+
+### 1) Create a user
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/users `
+  -ContentType "application/json" `
+  -Body '{"email":"alice@example.com","username":"alice","displayName":"Alice"}'
+```
+
+### 2) Get current user profile
+```powershell
+Invoke-RestMethod -Method Get -Uri http://localhost:3000/users/me `
+  -Headers @{ "x-user-id" = "1" }
+```
+
+### 3) Update current user profile
+```powershell
+Invoke-RestMethod -Method Patch -Uri http://localhost:3000/users/me `
+  -Headers @{ "x-user-id" = "1" } `
+  -ContentType "application/json" `
+  -Body '{"displayName":"Alice Updated","avatarUrl":"https://example.com/a.png"}'
+```
+
+### 4) Get public profile
+```powershell
+Invoke-RestMethod -Method Get -Uri http://localhost:3000/users/1
+```
+
+### 5) Create capability (admin)
+```powershell
+Invoke-RestMethod -Method Post -Uri http://localhost:3000/capabilities `
+  -Headers @{ "x-admin" = "true" } `
+  -ContentType "application/json" `
+  -Body '{"name":"Top Supporter","badgeType":"SUBSCRIPTION","minAmount":10,"minMonths":3}'
+```
+
+### 6) List capabilities
+```powershell
+Invoke-RestMethod -Method Get -Uri http://localhost:3000/capabilities
+```
+
+### 7) List a user's capabilities
+```powershell
+Invoke-RestMethod -Method Get -Uri http://localhost:3000/users/1/capabilities
+```
+
+---
+
+## Testing Guide (curl.exe on Windows)
+
+```powershell
+curl.exe -X POST http://localhost:3000/users `
+  -H "Content-Type: application/json" `
+  -d "{\"email\":\"alice@example.com\",\"username\":\"alice\",\"displayName\":\"Alice\"}"
+```
 
 ### GCP Test Upload
 - `GET /test-upload` (uploads a small text file to GCS; requires valid GCP credentials)
 
 ## Notes
-- `x-user-id` and `x-admin` headers are temporary/test-only.
-- Don’t commit secrets: `.env` and service account JSON keys should remain untracked.
+- `x-user-id` and `x-admin` are **temporary headers** for local testing only.
+- Real authentication and authorization (JWT/guards/roles) can be added later.
+

@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-
+  
 }
 
 model User {
@@ -26,8 +26,68 @@ model User {
   subscriptions           Subscription[]
   userCapabilities        UserCapability[]
   videoAssets             VideoAsset[]
+  moderationReports       ModerationReport[]  @relation("moderation_reporter")
+  moderationActions       ModerationAction[]  @relation("moderation_moderator")
+  moderationQueueItems    ModerationQueueItem[] @relation("moderation_assignee")
 
   @@map("users")
+}
+
+model Category {
+  id        Int          @id @default(autoincrement())
+  name      String       @unique @db.VarChar(120)
+  slug      String       @unique @db.VarChar(140)
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  videos    VideoCategory[]
+
+  @@map("categories")
+}
+
+model Activity {
+  id        Int          @id @default(autoincrement())
+  name      String       @unique @db.VarChar(120)
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  videos    VideoActivity[]
+
+  @@map("activities")
+}
+
+model Place {
+  id         Int          @id @default(autoincrement())
+  name       String       @db.VarChar(180)
+  city       String       @db.VarChar(120)
+  country    String       @db.VarChar(120)
+  latitude   Decimal?     @db.Decimal(9, 6)
+  longitude  Decimal?     @db.Decimal(9, 6)
+  createdAt  DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  videos     VideoAsset[]
+
+  @@map("places")
+  @@unique([name, city, country], map: "uq_place_name_city_country")
+  @@index([city], map: "idx_places_city")
+  @@index([country], map: "idx_places_country")
+}
+
+model Tag {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique @db.VarChar(80)
+  slug      String     @unique @db.VarChar(100)
+  videos    VideoTag[]
+
+  @@map("tags")
+}
+
+model VideoTag {
+  videoId Int       @map("video_id")
+  tagId   Int       @map("tag_id")
+  video   VideoAsset @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_tag_video")
+  tag     Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_tag_tag")
+
+  @@id([videoId, tagId])
+  @@map("video_tags")
+  @@index([tagId], map: "idx_video_tags_tag")
 }
 
 model RefreshToken {
@@ -116,14 +176,129 @@ model VideoAsset {
   mimeType            String?   @map("mime_type") @db.VarChar(50)
   sizeBytes           BigInt?   @map("size_bytes")
   durationSeconds     Int?      @map("duration_seconds")
+  placeId             Int?      @map("place_id")
+  latitude            Decimal?  @db.Decimal(9, 6)
+  longitude           Decimal?  @db.Decimal(9, 6)
+  locationName        String?   @map("location_name") @db.VarChar(255)
+  authorDisplayName   String?   @map("author_display_name") @db.VarChar(150)
+  views               Int       @default(0)
+  likes               Int       @default(0)
+  shares              Int       @default(0)
   metadata            Json?
   eligibleForStitch   Boolean?  @default(false) @map("eligible_for_stitch")
   status              String?   @db.VarChar(50)
+  processingStatus    VideoProcessingStatus? @map("processing_status")
+  moderationStatus    ModerationStatus? @default(SUBMITTED) @map("moderation_status")
+  moderationScore     Decimal?  @map("moderation_score") @db.Decimal(5, 2)
+  moderationReviewedAt DateTime? @map("moderation_reviewed_at") @db.Timestamp(6)
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
   owner               User      @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_owner")
+  place               Place?    @relation(fields: [placeId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_video_place")
+  tags                VideoTag[]
+  categories          VideoCategory[]
+  activities          VideoActivity[]
+  moderationReports   ModerationReport[]
+  moderationFlags     ModerationFlag[]
+  moderationActions   ModerationAction[]
+  moderationQueueItems ModerationQueueItem[]
 
   @@map("video_assets")
   @@index([ownerId], map: "idx_video_assets_owner")
+  @@index([placeId], map: "idx_video_assets_place_id")
+  @@index([status, createdAt], map: "idx_video_assets_status_created_at")
+  @@index([views, likes, shares], map: "idx_video_assets_trending")
+  @@index([moderationStatus, createdAt], map: "idx_video_assets_moderation_status_created_at")
+}
+
+model VideoCategory {
+  videoId    Int        @map("video_id")
+  categoryId Int        @map("category_id")
+  video      VideoAsset @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_category_video")
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_category_category")
+
+  @@id([videoId, categoryId])
+  @@map("video_categories")
+  @@index([categoryId], map: "idx_video_categories_category_id")
+}
+
+model VideoActivity {
+  videoId    Int        @map("video_id")
+  activityId Int        @map("activity_id")
+  video      VideoAsset @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_activity_video")
+  activity   Activity   @relation(fields: [activityId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_video_activity_activity")
+
+  @@id([videoId, activityId])
+  @@map("video_activities")
+  @@index([activityId], map: "idx_video_activities_activity_id")
+}
+model ModerationReport {
+  id          Int            @id @default(autoincrement())
+  videoId     Int            @map("video_id")
+  reporterId  Int?           @map("reporter_id")
+  reason      ReportReason
+  details     String?
+  status      ReportStatus   @default(OPEN)
+  createdAt   DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  resolvedAt  DateTime?      @map("resolved_at") @db.Timestamp(6)
+  video       VideoAsset     @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_moderation_report_video")
+  reporter    User?          @relation("moderation_reporter", fields: [reporterId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_moderation_report_user")
+
+  @@map("moderation_reports")
+  @@index([videoId], map: "idx_moderation_reports_video_id")
+  @@index([reporterId], map: "idx_moderation_reports_reporter_id")
+  @@index([status, createdAt], map: "idx_moderation_reports_status_created_at")
+}
+
+model ModerationFlag {
+  id          Int                 @id @default(autoincrement())
+  videoId     Int                 @map("video_id")
+  source      String              @db.VarChar(120)
+  label       String              @db.VarChar(120)
+  confidence  Decimal?            @db.Decimal(5, 2)
+  severity    ModerationSeverity  @default(MEDIUM)
+  status      FlagStatus          @default(OPEN)
+  createdAt   DateTime?           @default(now()) @map("created_at") @db.Timestamp(6)
+  video       VideoAsset          @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_moderation_flag_video")
+
+  @@map("moderation_flags")
+  @@index([videoId], map: "idx_moderation_flags_video_id")
+  @@index([status, createdAt], map: "idx_moderation_flags_status_created_at")
+  @@index([severity], map: "idx_moderation_flags_severity")
+}
+
+model ModerationAction {
+  id           Int                     @id @default(autoincrement())
+  videoId      Int                     @map("video_id")
+  moderatorId  Int?                    @map("moderator_id")
+  action       ModerationActionType
+  reason       String?
+  policyVersion String?                @map("policy_version") @db.VarChar(50)
+  createdAt    DateTime?               @default(now()) @map("created_at") @db.Timestamp(6)
+  video        VideoAsset              @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_moderation_action_video")
+  moderator    User?                   @relation("moderation_moderator", fields: [moderatorId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_moderation_action_user")
+
+  @@map("moderation_actions")
+  @@index([videoId], map: "idx_moderation_actions_video_id")
+  @@index([moderatorId], map: "idx_moderation_actions_moderator_id")
+  @@index([action, createdAt], map: "idx_moderation_actions_action_created_at")
+}
+
+model ModerationQueueItem {
+  id           Int                @id @default(autoincrement())
+  videoId      Int                @map("video_id")
+  status       QueueStatus        @default(PENDING)
+  priority     Int                @default(0)
+  assignedToId Int?               @map("assigned_to_id")
+  createdAt    DateTime?          @default(now()) @map("created_at") @db.Timestamp(6)
+  assignedAt   DateTime?          @map("assigned_at") @db.Timestamp(6)
+  completedAt  DateTime?          @map("completed_at") @db.Timestamp(6)
+  video        VideoAsset         @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_moderation_queue_video")
+  assignedTo   User?              @relation("moderation_assignee", fields: [assignedToId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_moderation_queue_user")
+
+  @@map("moderation_queue_items")
+  @@index([videoId], map: "idx_moderation_queue_video_id")
+  @@index([assignedToId], map: "idx_moderation_queue_assignee_id")
+  @@index([status, priority, createdAt], map: "idx_moderation_queue_status_priority_created_at")
 }
 
 enum CapabilityBadgeType {
@@ -143,4 +318,82 @@ enum CommonStatus {
   EXPIRED
 
   @@map("common_status")
+}
+
+enum VideoProcessingStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  FAILED
+
+  @@map("video_processing_status")
+}
+
+enum ModerationStatus {
+  SUBMITTED
+  AUTO_SCREENED
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+  TAKEDOWN
+
+  @@map("moderation_status")
+}
+
+enum ReportReason {
+  SPAM
+  NUDITY
+  VIOLENCE
+  HATE
+  HARASSMENT
+  COPYRIGHT
+  SELF_HARM
+  OTHER
+
+  @@map("report_reason")
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+
+  @@map("report_status")
+}
+
+enum ModerationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+
+  @@map("moderation_severity")
+}
+
+enum FlagStatus {
+  OPEN
+  ACKED
+  CLEARED
+
+  @@map("flag_status")
+}
+
+enum ModerationActionType {
+  APPROVE
+  REJECT
+  REMOVE
+  SHADOW_BAN
+  AGE_RESTRICT
+
+  @@map("moderation_action_type")
+}
+
+enum QueueStatus {
+  PENDING
+  ASSIGNED
+  DONE
+  SKIPPED
+
+  @@map("moderation_queue_status")
 }

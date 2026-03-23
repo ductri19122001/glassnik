@@ -36,9 +36,17 @@ export class SubscriptionsService {
       },
     });
 
-      // Rule: Grant 'live.subscriber' if plan is PREMIUM
-      if (planCode.startsWith('PREMIUM')) {
-        const cap = await tx.capability.findUnique({ where: { name: 'live.subscriber' } });
+      // Rule: Grant capability based on plan
+      const PLAN_TO_CAPABILITY: Record<string, string> = {
+        'PREMIUM_MONTHLY': 'live.subscriber',
+        'PREMIUM_YEARLY': 'live.subscriber',
+        'glasses_immersive': 'glasses.subscriber',
+      };
+
+      const capabilityName = PLAN_TO_CAPABILITY[planCode] || (planCode.startsWith('PREMIUM') ? 'live.subscriber' : null);
+
+      if (capabilityName) {
+        const cap = await tx.capability.findUnique({ where: { name: capabilityName } });
         if (cap) {
           await tx.userCapability.upsert({
             where: { userId_capabilityId: { userId, capabilityId: cap.id } },
