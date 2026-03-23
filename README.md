@@ -1,30 +1,22 @@
 # Glassnik Backend
 
-Backend project built with NestJS, Prisma (PostgreSQL), and Google Cloud Storage.
+Backend for the Glassnik system, built with NestJS + Prisma (PostgreSQL), with optional Google Cloud Storage integration.
 
-**Quick setup**
-1. Install dependencies
+## Quick Start
+
+1) Install dependencies
 ```bash
 npm install
 ```
 
-2. Create `.env` from the example
-```bash
-copy src\.env.example .env
-```
+2) Create `.env` (see **Environment** below)
 
-3. Update `DATABASE_URL` in `.env` to point to your local PostgreSQL instance.
-
-4. (Optional) Google Cloud Storage setup  
-If you plan to call the `/test-upload` endpoint from `AppController`, place your GCP service account JSON in the project root and set:
-`GOOGLE_APPLICATION_CREDENTIALS=./<your-key>.json`
-
-5. Sync database schema
+3) Sync database schema
 ```bash
 npx prisma migrate dev --name init
 ```
 
-6. Run the server
+4) Run the server
 ```bash
 npm run start:dev
 ```
@@ -51,73 +43,75 @@ Endpoints:
 1. `POST /users`  
 Register a new user.
 
-2. `GET /users/me`  
-Get the current user profile.  
-Uses header `x-user-id` for now (simple test auth).
+## Environment
 
-3. `PATCH /users/me`  
-Update current user profile (display name, avatar).  
-Uses header `x-user-id`.
+Create a `.env` file in the project root (it is ignored by git).
 
-4. `GET /users/:id`  
-Get public profile information of another user.
+Required:
+- `DATABASE_URL` (PostgreSQL connection string)
 
-5. `GET /users/:userId/capabilities`  
-List capabilities assigned to a specific user.
+Optional:
+- `PORT` (default `3000`)
+- `JWT_SECRET` (default `glassnik-dev-secret`)
+- `GOOGLE_APPLICATION_CREDENTIALS` (path to a GCP service account JSON key, e.g. `./my-key.json`)
+- `GCP_BUCKET_NAME` (default `glassnik` for `/test-upload`, and `glassnik-videos` for video uploads)
 
-### Capabilities & Badges (`/capabilities`)
-Endpoints:
-1. `GET /capabilities`  
-List all available capability definitions.
+## API Testing
 
-2. `POST /capabilities` (Admin only)  
-Create a new capability definition.  
-Uses header `x-admin: true`.
+Recommended: use `requests.http` (VS Code extension: "REST Client").
+- Send `POST /auth/register`
+- Send `POST /auth/login` and copy `access_token`
+- Set `@JWT = <access_token>` at the top of `requests.http`
+- Run the authenticated requests (e.g. `GET /videos`)
 
-### Subscriptions (`/subscriptions`)
-Endpoints:
-1. `POST /subscriptions`  
-Create or upgrade a subscription.  
-Body: `{"planCode": "PREMIUM_MONTHLY"}`
+## Endpoints (Current)
 
-2. `GET /subscriptions/current`  
-Get the current active subscription of the user.
+### Auth (`/auth`)
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/refresh`
+- `POST /auth/logout`
 
-3. `POST /subscriptions/cancel`  
-Cancel the current subscription.
+### Videos (`/videos`) — JWT required
+- `POST /videos`
+- `POST /videos/upload` (multipart file upload, field name: `file`)
+- `GET /videos`
+- `GET /videos/:id`
+- `PATCH /videos/:id`
+- `DELETE /videos/:id`
 
-### Capability Applications (`/applications`)
-Endpoints:
-1. `POST /applications`  
-Submit a capability application.  
-Body: `{"capabilityCode": "live.creator", "notes": "I want to stream"}`
+### Subscriptions (`/subscriptions`) — JWT required
+- `POST /subscriptions` (body: `{ "planCode": "premium" }`)
+- `GET /subscriptions/current`
+- `POST /subscriptions/cancel`
 
-2. `GET /applications` (Admin only)  
-List applications. Filter by `?status=PENDING`.
+### Applications (`/applications`) — JWT required
+- `POST /applications`
+- `GET /applications` (optional `?status=...`)
+- `GET /applications/:id`
+- `PATCH /applications/:id/review`
 
-3. `PATCH /applications/:id/review` (Admin only)  
-Approve or reject.  
-Body: `{"status": "APPROVED", "notes": "Looks good"}`
+### Live (`/live`)
+- `GET /live/:liveId` (public)
+- `GET /live/:liveId/premium` (JWT + capability `live.subscriber`)
+- `POST /live/start` (JWT + capability `live.creator`)
+- `POST /live/:liveId/chat` (JWT + capability `live.viewer`)
 
-### Video Assets (`/videos`)
-Endpoints:
-1. `POST /videos` - Initialize a video upload.
-2. `GET /videos` - List videos owned by the current user.
-3. `GET /videos/:id` - Get metadata of a specific video.
-4. `PATCH /videos/:id` - Update video status or settings.
+### Mobile (`/mobile`)
+- `GET /mobile/feed` (public; supports cursor pagination params)
+- `POST /mobile/videos` (JWT + capability `mobile.creator`)
 
-### Live Experiences (`/live`)
-*Requires header `x-capabilities` for checks (e.g., `live.creator,live.viewer`).*
-Endpoints:
-1. `GET /live/:id` - Watch public live.
-2. `GET /live/:id/premium` - Watch premium live (Requires `live.subscriber`).
-3. `POST /live/start` - Start stream (Requires `live.creator`).
-4. `POST /live/:id/chat` - Send chat (Requires `live.viewer`).
+### Users (`/users`) — legacy test auth
+These endpoints currently use the header `x-user-id` for local testing:
+- `POST /users`
+- `GET /users/me`
+- `PATCH /users/me`
+- `GET /users/:id`
+- `GET /users/:userId/capabilities`
 
-### Mobile Experiences (`/mobile`)
-Endpoints:
-1. `POST /mobile/videos` - Upload mobile video (Requires `mobile.creator`).
-2. `GET /mobile/feed` - View public video feed.
+### Capabilities (`/capabilities`) — admin header for create
+- `GET /capabilities`
+- `POST /capabilities` (requires `x-admin: true`)
 
 ### Smart Glasses Experiences (`/glasses`)
 Endpoints:
@@ -188,7 +182,8 @@ curl.exe -X POST http://localhost:3000/users `
   -d "{\"email\":\"alice@example.com\",\"username\":\"alice\",\"displayName\":\"Alice\"}"
 ```
 
----
+### GCP Test Upload
+- `GET /test-upload` (uploads a small text file to GCS; requires valid GCP credentials)
 
 ## Notes
 - `x-user-id` and `x-admin` are **temporary headers** for local testing only.
